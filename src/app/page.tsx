@@ -47,6 +47,9 @@ export default function HomePage() {
         let parsed: Transaction[] = [];
 
         if (file.name.toLowerCase().endsWith('.pdf')) {
+          setMessage(`🔍 Processing PDF: ${file.name}...`);
+          setMessageType('success');
+          
           // Send PDF to server for parsing
           const fd = new FormData();
           fd.append('file', file);
@@ -55,7 +58,7 @@ export default function HomePage() {
           if (json.ok && json.transactions?.length > 0) {
             parsed = json.transactions;
           } else {
-            showMsg(`${file.name}: ${json.error || 'No transactions found'}`, 'error');
+            showMsg(`${file.name}: ${json.error || json.hint || 'No transactions found'}`, 'error');
             continue;
           }
         } else {
