@@ -6,7 +6,7 @@ export interface Transaction {
   category: string;
   account: string;      // e.g. "DBS Credit Card", "OCBC Bank", "UOB"
   month: string;        // YYYY-MM
-  raw: string;          // original line for debugging
+  raw?: string;          // original line for debugging (stripped before save for size)
 }
 
 export interface MonthlySummary {

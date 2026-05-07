@@ -33,11 +33,10 @@ export async function POST(req: NextRequest) {
         id: 'pdf-' + t.date + '-' + Math.random().toString(36).slice(2, 8),
         date: t.date,
         description: t.description,
-        amount: -Math.abs(t.amount), // expenses are negative
+        amount: -Math.abs(t.amount),
         category: t.category,
         account: t.account,
         month: t.month,
-        raw: t.raw,
       }));
     } else {
       // Fall back to generic parser

@@ -68,13 +68,23 @@ export default function HomePage() {
         }
 
         if (parsed.length > 0) {
+          // Strip raw fields to keep localStorage size down
+          const cleaned = parsed.map(({ raw, ...rest }) => rest);
           const existing = loadFromLocalStorage();
           const existingIds = new Set(existing.map(t => t.id));
-          const unique = parsed.filter(t => !existingIds.has(t.id));
+          const unique = cleaned.filter(t => !existingIds.has(t.id));
           const merged = [...existing, ...unique].sort((a, b) => b.date.localeCompare(a.date));
-          saveToLocalStorage(merged);
-          setTransactions(merged);
-          added += unique.length;
+          try {
+            saveToLocalStorage(merged);
+            setTransactions(merged);
+            added += unique.length;
+          } catch (e: any) {
+            if (e.name === 'QuotaExceededError') {
+              showMsg('Storage full — too much data. Clear and re-upload your latest statements.', 'error');
+            } else {
+              throw e;
+            }
+          }
         }
       } catch (e: any) {
         showMsg(`${file.name}: ${e.message || 'Parse failed'}`, 'error');
