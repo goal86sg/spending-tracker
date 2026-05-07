@@ -44,8 +44,26 @@ export default function HomePage() {
 
     for (const file of Array.from(files)) {
       try {
-        const text = await file.text();
-        const parsed = parseCSV(text, file.name);
+        let parsed: Transaction[] = [];
+
+        if (file.name.toLowerCase().endsWith('.pdf')) {
+          // Send PDF to server for parsing
+          const fd = new FormData();
+          fd.append('file', file);
+          const res = await fetch('/api/parse-pdf', { method: 'POST', body: fd });
+          const json = await res.json();
+          if (json.ok && json.transactions?.length > 0) {
+            parsed = json.transactions;
+          } else {
+            showMsg(`${file.name}: ${json.error || 'No transactions found'}`, 'error');
+            continue;
+          }
+        } else {
+          // Parse CSV client-side
+          const text = await file.text();
+          parsed = parseCSV(text, file.name);
+        }
+
         if (parsed.length > 0) {
           const existing = loadFromLocalStorage();
           const existingIds = new Set(existing.map(t => t.id));
@@ -55,7 +73,9 @@ export default function HomePage() {
           setTransactions(merged);
           added += unique.length;
         }
-      } catch {}
+      } catch (e: any) {
+        showMsg(`${file.name}: ${e.message || 'Parse failed'}`, 'error');
+      }
     }
 
     setUploading(false);
@@ -125,11 +145,29 @@ export default function HomePage() {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
           >
-            <input type="file" multiple accept=".csv,.txt" className="hidden" onChange={handleFileInput} />
+            <input type="file" multiple accept=".csv,.txt,.pdf" className="hidden" onChange={handleFileInput} />
             <div className="text-4xl mb-3">📁</div>
-            <p className="text-sm font-medium text-gray-700">Drop CSV files here or click to browse</p>
-            <p className="text-xs text-gray-400 mt-2">DBS, OCBC, UOB, or any bank CSV</p>
+            <p className="text-sm font-medium text-gray-700">Drop CSV or PDF bank statements here</p>
+            <p className="text-xs text-gray-400 mt-2">DBS, OCBC, UOB CSV exports · PDF statements</p>
           </label>
+
+          <div className="mt-6 text-left bg-white border border-gray-200 rounded-xl p-5">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">What's supported</p>
+            <div className="space-y-2 text-xs text-gray-600">
+              <div className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✅</span>
+                <span><strong>CSV files</strong> — DBS, OCBC, UOB transaction exports (instant, client-side)</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✅</span>
+                <span><strong>PDF statements</strong> — Text-based bank PDFs (DBS, OCBC, UOB — parsed server-side)</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-yellow-500 mt-0.5">⚠️</span>
+                <span><strong>Screenshots</strong> — Can't auto-parse yet. Send them to me on Telegram and I'll transcribe them for you manually.</span>
+              </div>
+            </div>
+          </div>
 
           <p className="text-xs text-gray-400 mt-4">Data stays in your browser. Nothing uploaded to any server.</p>
         </div>
@@ -150,7 +188,7 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           <label className="text-xs px-3 py-2 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 font-medium text-gray-600 transition-colors">
             + Add Files
-            <input type="file" multiple accept=".csv,.txt" className="hidden" onChange={handleFileInput} />
+            <input type="file" multiple accept=".csv,.txt,.pdf" className="hidden" onChange={handleFileInput} />
           </label>
           <button onClick={clearData} className="text-xs px-3 py-2 bg-white border border-red-200 rounded-lg text-red-500 hover:bg-red-50 font-medium transition-colors">
             Clear
