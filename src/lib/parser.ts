@@ -1,7 +1,7 @@
 // Parser for Singapore bank CSV/transaction exports
 // Supports DBS, OCBC, UOB, and generic CSV formats
 
-import { Transaction } from './types';
+import { Transaction, MonthlySummary } from './types';
 import Papa from 'papaparse';
 import { parse } from 'date-fns';
 
@@ -60,8 +60,8 @@ function detectAccount(headers: string[], filename: string): string {
 let txnCounter = 0;
 
 export function parseCSV(csvText: string, filename: string = 'upload.csv'): Transaction[] {
-  const result = Papa.parse(csvText, { header: true, skipEmptyLines: true, trimHeaders: true });
-  const headers = result.meta.fields || [];
+  const result = Papa.parse<Record<string, string>>(csvText, { header: true, skipEmptyLines: true });
+  const headers: string[] = (result as any).meta.fields || [];
 
   if (headers.length === 0) return [];
 
@@ -70,13 +70,13 @@ export function parseCSV(csvText: string, filename: string = 'upload.csv'): Tran
   const transactions: Transaction[] = [];
 
   // Bank-specific column mappings
-  let dateCol = headers.find(h => /date/i.test(h)) || headers[0];
-  let descCol = headers.find(h => /desc|narrative|details|particulars/i.test(h)) || headers[1];
-  let debitCol = headers.find(h => /debit|withdrawal|amount out/i.test(h)) || '';
-  let creditCol = headers.find(h => /credit|deposit|amount in/i.test(h)) || '';
-  let amtCol = headers.find(h => /amount$/i.test(h)) || '';
+  const dateCol: string = headers.find((h: string) => /date/i.test(h)) || headers[0];
+  const descCol: string = headers.find((h: string) => /desc|narrative|details|particulars/i.test(h)) || headers[1];
+  const debitCol: string = headers.find((h: string) => /debit|withdrawal|amount out/i.test(h)) || '';
+  const creditCol: string = headers.find((h: string) => /credit|deposit|amount in/i.test(h)) || '';
+  const amtCol: string = headers.find((h: string) => /amount$/i.test(h)) || '';
 
-  for (const row of result.data as Record<string, string>[]) {
+  for (const row of (result as any).data as Record<string, string>[]) {
     const dateStr = parseDate(row[dateCol] || '');
     if (!dateStr) continue;
 
